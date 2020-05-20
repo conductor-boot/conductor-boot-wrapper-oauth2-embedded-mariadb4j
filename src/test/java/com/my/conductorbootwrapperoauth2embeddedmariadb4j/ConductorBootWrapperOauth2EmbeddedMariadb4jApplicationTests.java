@@ -7,6 +7,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+//@Profile("docker_default")
 public class ConductorBootWrapperOauth2EmbeddedMariadb4jApplicationTests {
 
 	@Test

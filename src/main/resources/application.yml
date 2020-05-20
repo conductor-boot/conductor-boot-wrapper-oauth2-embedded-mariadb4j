@@ -1,14 +1,24 @@
 server:
   port: 8080
+  use-forward-headers: true
+  ssl:
+    key-store-type: PKCS12
+# The path to the keystore containing the certificate
+    key-store: classpath:keystore/my.p12
+# The password used to generate the certificate
+    key-store-password: conductor
+# The alias mapped to the certificate
+    key-alias: my
+    enabled: false
+
 spring:
   application:
-    name: conductor-boot-wrapper-oauth2-embedded-mariadb4j
+    name: conductor-boot-wrapper-secure
   datasource:
     name: conductor
-#    url: jdbc:mysql://localhost:3306/oauth?createDatabaseIfNotExist=true&autoReconnect=true&verifyServerCertificate=false&useSSL=false
-    username: AnsiCon
-    password: AnsiCon!23$
-#    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: Conductor
+    password: Conductor!23$
+    driver-class-name: com.mysql.cj.jdbc.Driver
     tomcat:
       test-while-idle: true
       validation-query: SELECT 1
@@ -23,17 +33,17 @@ spring:
     baseline-on-migrate: true
 
 check-user-scopes: true
-awaitTermination: 300
+awaitTermination: 3000
 
-#wrapper_db: mysql
 wrapper_db: mariadb4j
 
 mariadb4j:
   database:
     name: ${spring.datasource.name}
-  dataDir: ./${spring.application.name}-data
-  libDir: ./${spring.application.name}-lib
-  baseDir: ./${spring.application.name}-base
+  port: 3306
+  dataDir: ${spring.application.name}-data
+  libDir: ${spring.application.name}-lib
+  baseDir: ${spring.application.name}-base
 #  dataDir: /appln/db/${spring.application.name}-data
 #  libDir: /appln/db/${spring.application.name}-lib
 #  baseDir: /appln/db/${spring.application.name}-base
@@ -54,20 +64,19 @@ logbook:
     chunk-size: 10000
   format:
     style: splunk
-  exclude: [/conductor/api/swagger-ui**,/v3/api-docs/**,/actuator/**]
+  exclude: [/actuator/**, /v3/api-docs/**, /swagger-ui/**, /index.html]
   strategy: body-only-if-status-at-least
   minimum-status: 400
 
 ## Conductor MYSQL Configuration for Hikari DataSource
 db: mysql
 jdbc:
-#  url: ## Leave it commented for mariadb4j
   username: ${spring.datasource.username}
   password: ${spring.datasource.password}  
 conductor:
   jetty:
     server:
-      port: 8081
+      port: 1987
   mysql:
     connection:
       timeout: 18000000
@@ -80,17 +89,185 @@ conductor:
           max: 10000
 
 zuul:
+  add-proxy-headers: true
+  add-host-header: true
+  ssl-hostname-validation-enabled: false
   sensitive-headers:
   - Authorization
   routes:
-    conductor:
-      path: /conductor/**
+    conductor-index:
+      path: /
       url: http://localhost:${conductor.jetty.server.port}
       retryable: true
+    conductor-html:
+      path: /index.html
+      url: http://localhost:${conductor.jetty.server.port}
+      retryable: true
+      strip-prefix: false
+    conductor-swagger-json:
+      path: /api/swagger.json
+      url: http://localhost:${conductor.jetty.server.port}
+      retryable: true
+      strip-prefix: false
+    conductor-swagger-lib:
+      path: /lib/**
+      url: http://localhost:${conductor.jetty.server.port}
+      retryable: true
+      strip-prefix: false
+    conductor-swagger-css:
+      path: /css/**
+      url: http://localhost:${conductor.jetty.server.port}
+      retryable: true
+      strip-prefix: false
+    conductor-swagger-js:
+      path: /swagger-ui.js
+      url: http://localhost:${conductor.jetty.server.port}
+      retryable: true
+      strip-prefix: false
+    conductor-api:
+      path: /api/**
+      url: http://localhost:${conductor.jetty.server.port}
+      retryable: true
+      strip-prefix: false
 
 security:
   oauth2:
+    conductor:
+      roles: role_conductor_super_manager,role_conductor_super_viewer,role_conductor_core_manager,role_conductor_core_viewer,role_conductor_execution_manager,role_conductor_execution_viewer,role_conductor_event_manager,role_conductor_event_viewer,role_conductor_metadata_manager,role_conductor_metadata_viewer,role_conductor_workflow_manager,role_conductor_workflow_viewer,role_conductor_task_manager,role_conductor_task_viewer
+    client:
+      roles: role_oauth_client_admin
     resource:
+      mapping: |
+        [
+          {
+            "endpoint": "/api/event/**",
+            "http_methods": [
+              "POST",
+              "PUT",
+              "DELETE"
+            ],
+            "roles": [
+              "role_conductor_super_manager", "role_conductor_core_manager", "role_conductor_execution_manager", "role_conductor_event_manager"
+            ]
+          },
+          {
+            "endpoint": "/api/event/**",
+            "http_methods": [
+              "GET"
+            ],
+            "roles": [
+              "role_conductor_super_manager", "role_conductor_super_manager", "role_conductor_super_viewer","role_conductor_core_manager", "role_conductor_execution_manager", "role_conductor_event_manager", "role_conductor_core_viewer", "role_conductor_execution_viewer", "role_conductor_event_viewer"
+            ]
+          },
+          {
+            "endpoint": "/api/workflow/**",
+            "http_methods": [
+              "POST",
+              "PUT",
+              "DELETE"
+            ],
+            "roles": [
+              "role_conductor_super_manager", "role_conductor_core_manager", "role_conductor_execution_manager", "role_conductor_workflow_manager"
+            ]
+          },
+          {
+            "endpoint": "/api/workflow/**",
+            "http_methods": [
+              "GET"
+            ],
+            "roles": [
+              "role_conductor_super_manager", "role_conductor_super_viewer","role_conductor_core_manager", "role_conductor_execution_manager", "role_conductor_workflow_manager", "role_conductor_core_viewer", "role_conductor_execution_viewer", "role_conductor_workflow_viewer"
+            ]
+          },
+          {
+            "endpoint": "/api/tasks/**",
+            "http_methods": [
+              "POST",
+              "PUT",
+              "DELETE"
+            ],
+            "roles": [
+              "role_conductor_super_manager", "role_conductor_core_manager", "role_conductor_execution_manager", "role_conductor_task_manager"
+            ]
+          },
+          {
+            "endpoint": "/api/tasks/**",
+            "http_methods": [
+              "GET"
+            ],
+            "roles": [
+              "role_conductor_super_manager", "role_conductor_super_viewer","role_conductor_core_manager", "role_conductor_execution_manager", "role_conductor_task_manager", "role_conductor_core_viewer", "role_conductor_execution_viewer", "role_conductor_task_viewer"
+            ]
+          },
+          {
+            "endpoint": "/api/metadata/**",
+            "http_methods": [
+              "POST",
+              "PUT",
+              "DELETE"
+            ],
+            "roles": [
+              "role_conductor_super_manager", "role_conductor_core_manager", "role_conductor_metadata_manager"
+            ]
+          },
+          {
+            "endpoint": "/api/metadata/**",
+            "http_methods": [
+              "GET"
+            ],
+            "roles": [
+              "role_conductor_super_manager", "role_conductor_super_viewer","role_conductor_core_manager", "role_conductor_metadata_manager", "role_conductor_core_viewer", "role_conductor_metadata_viewer"
+            ]
+          },
+          {
+            "endpoint": "/oauth/admin/**",
+            "http_methods": [
+            "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ],
+            "roles": [
+              "role_oauth_super_admin"
+            ]
+          },
+          {
+            "endpoint": "/oauth/client/**",
+            "http_methods": [
+            "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ],
+            "roles": [
+              "role_oauth_client_admin"
+            ]
+          },
+          {
+            "endpoint": "/oauth/user/**",
+            "http_methods": [
+            "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ],
+            "roles": [
+              "role_oauth_super_admin", "role_oauth_client_admin", "role_conductor_super_manager", "role_conductor_super_viewer", "role_conductor_core_manager", "role_conductor_core_viewer", "role_conductor_execution_manager", "role_conductor_execution_viewer", "role_conductor_event_manager", "role_conductor_event_viewer", "role_conductor_metadata_manager", "role_conductor_metadata_viewer", "role_conductor_workflow_manager", "role_conductor_workflow_viewer", "role_conductor_task_manager", "role_conductor_task_viewer"
+            ]
+          },
+          {
+            "endpoint": "/oauth/user/principal",
+            "http_methods": [
+              "GET"
+            ],
+            "roles": [
+              "role_oauth_super_admin", "role_oauth_client_admin", "role_conductor_super_manager", "role_conductor_super_viewer", "role_conductor_core_manager", "role_conductor_core_viewer", "role_conductor_execution_manager", "role_conductor_execution_viewer", "role_conductor_event_manager", "role_conductor_event_viewer", "role_conductor_metadata_manager", "role_conductor_metadata_viewer", "role_conductor_workflow_manager", "role_conductor_workflow_viewer", "role_conductor_task_manager", "role_conductor_task_viewer"
+            ]
+          }
+        ]
       jwt:
         key-value: |
           -----BEGIN PUBLIC KEY-----

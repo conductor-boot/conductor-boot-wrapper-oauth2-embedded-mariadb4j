@@ -12,6 +12,8 @@ import org.springframework.boot.web.embedded.tomcat.TomcatConnectorCustomizer;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextClosedEvent;
 
+import com.my.conductorbootwrapperoauth2embeddedmariadb4j.conductor.runner.thread.ConductorRunnerThreadProvider;
+
 public class GracefulShutdown implements TomcatConnectorCustomizer, ApplicationListener<ContextClosedEvent> {
 	
 	private static final Logger log = LoggerFactory.getLogger(GracefulShutdown.class);
@@ -29,6 +31,8 @@ public class GracefulShutdown implements TomcatConnectorCustomizer, ApplicationL
 	@Override
 	public void onApplicationEvent(ContextClosedEvent event) {
 		this.connector.pause();
+		ConductorRunnerThreadProvider.getInstance().stopThread();
+		
 		Executor executor = this.connector.getProtocolHandler().getExecutor();
 		if (executor instanceof ThreadPoolExecutor) {
 			try {

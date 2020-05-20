@@ -26,12 +26,13 @@ public class EnvironmentVariablesToSystemPropertiesMappingConfiguration {
 
 		Properties props = new Properties();
 
-		for (Iterator it = ((AbstractEnvironment) ctx.getEnvironment()).getPropertySources().iterator(); it.hasNext();) {
+		for (Iterator it = ((AbstractEnvironment) ctx.getEnvironment()).getPropertySources().iterator(); it.hasNext();) 
+		{	
 			PropertySource propertySource = (PropertySource) it.next();
-			if (propertySource instanceof OriginTrackedMapPropertySource) {
-
+			
+			if (propertySource instanceof OriginTrackedMapPropertySource) 
+			{
 				props.putAll(((MapPropertySource) propertySource).getSource());
-
 			}
 		}
 		

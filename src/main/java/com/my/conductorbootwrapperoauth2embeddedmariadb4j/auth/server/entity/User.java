@@ -1,6 +1,7 @@
 package com.my.conductorbootwrapperoauth2embeddedmariadb4j.auth.server.entity;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -11,7 +12,11 @@ import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
+import javax.persistence.PrePersist;
+import javax.persistence.PreUpdate;
 import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -41,6 +46,29 @@ public class User extends BaseIdEntity implements UserDetails {
 			@JoinColumn(name = "user_id", referencedColumnName = "id") }, inverseJoinColumns = {
 					@JoinColumn(name = "role_id", referencedColumnName = "id") })
 	private List<Role> roles;
+	
+	@JoinTable(name = "oauth_client_details", joinColumns = {
+			@JoinColumn(name = "client", referencedColumnName = "client_id")
+	})
+	private String client;
+	
+	@Temporal(TemporalType.TIMESTAMP)
+	@Column(name = "insert_timestamp", nullable = false)
+	private Date insertTimestamp;
+
+	@Temporal(TemporalType.TIMESTAMP)
+	@Column(name = "update_timestamp", nullable = false)
+	private Date updateTimestamp;
+
+	@PrePersist
+	protected void onCreate() {
+		updateTimestamp = insertTimestamp = new Date();
+	}
+
+	@PreUpdate
+	protected void onUpdate() {
+		updateTimestamp = new Date();
+	}
 
 	@Override
 	public boolean isEnabled() {
@@ -83,6 +111,10 @@ public class User extends BaseIdEntity implements UserDetails {
 	public String getPassword() {
 		return password;
 	}
+	
+	public void setPassword(String password) {
+		this.password = password;
+	}
 
 	@Override
 	public String getUsername() {
@@ -95,6 +127,22 @@ public class User extends BaseIdEntity implements UserDetails {
 
 	public void setEmail(String email) {
 		this.email = email;
+	}
+
+	public Date getInsertTimestamp() {
+		return insertTimestamp;
+	}
+
+	public void setInsertTimestamp(Date insertTimestamp) {
+		this.insertTimestamp = insertTimestamp;
+	}
+
+	public Date getUpdateTimestamp() {
+		return updateTimestamp;
+	}
+
+	public void setUpdateTimestamp(Date updateTimestamp) {
+		this.updateTimestamp = updateTimestamp;
 	}
 
 }

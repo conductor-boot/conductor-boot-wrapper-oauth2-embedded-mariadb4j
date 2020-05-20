@@ -12,8 +12,8 @@ import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.cloud.netflix.zuul.EnableZuulProxy;
 import org.springframework.context.event.EventListener;
 
+import com.my.conductorbootwrapperoauth2embeddedmariadb4j.conductor.runner.thread.ConductorRunnerThreadProvider;
 import com.my.conductorbootwrapperoauth2embeddedmariadb4j.environment.config.EnvironmentVariablesToSystemPropertiesMappingConfiguration;
-import com.netflix.conductor.bootstrap.Main;
 
 @SpringBootApplication
 @EnableZuulProxy
@@ -24,48 +24,48 @@ public class ConductorBootWrapperOauth2EmbeddedMariadb4jApplication {
 	
 	@Autowired
 	EnvironmentVariablesToSystemPropertiesMappingConfiguration environmentVariablesToSystemPropertiesMappingConfiguration;
+	
+	//@Value("${server.port:8080}")
+	//private int serverPort;
 
-	public static void main(String[] args) {
-		SpringApplication app = new SpringApplication(ConductorBootWrapperOauth2EmbeddedMariadb4jApplication.class);
+	public static void main(String[] args) throws InterruptedException
+    {
+        SpringApplication app = new SpringApplication(ConductorBootWrapperOauth2EmbeddedMariadb4jApplication.class);
         args_buffer = args;
         app.run(args);
 	}
+	
 	@EventListener(ApplicationStartedEvent.class)
 	public void mapEnvToProp()
 	{
+		/*
+		 * int conductorPort = PortAvailabilityUtils.randomFreePort();
+		 * 
+		 * RestTemplate restTemplate = new RestTemplate();
+		 * 
+		 * ResponseEntity<String> updateResponse =
+		 * restTemplate.postForEntity("http://localhost:"+serverPort+"/env",
+		 * "{\"conductor.jetty.server.port\":\""+conductorPort+"\"}", String.class);
+		 * 
+		 * System.out.println(updateResponse.getStatusCodeValue());
+		 * 
+		 * ResponseEntity<String> refreshResponse =
+		 * restTemplate.postForEntity("http://localhost:"+serverPort+"/refresh", null,
+		 * String.class);
+		 * 
+		 * System.out.println(refreshResponse.getStatusCodeValue());
+		 */
+		
 		this.environmentVariablesToSystemPropertiesMappingConfiguration.mapEnvToProp();
 	}
 	
 	@EventListener(ApplicationReadyEvent.class)
-	public void startConductorServer() {
+	public void startConductorServer() throws InterruptedException {
 		
-		try {
-			
-			if(null!=args_buffer && args_buffer.length > 0)
-		      {	
-		        String[] args_new = new String[args_buffer.length-1];
-		        
-		        for(String arg: args_buffer)
-		        {
-		          if(!"--spring.output.ansi.enabled=always".equalsIgnoreCase(arg))
-		          {
-		            args_new[args_new.length] = arg;
-		          }
-		        }
-		        
-		        Main.main(args_new);
-		      }
-		      else
-		      {	        
-		        Main.main(args_buffer);
-		    }
-
-		}
-		catch(Exception e)
-		{
-			System.out.println("############################# MYSQL SHUTDOWN #############################");
-		}
+		ConductorRunnerThreadProvider conductorRunnerThread = ConductorRunnerThreadProvider.getInstance();
 		
+		conductorRunnerThread.configureArgs(args_buffer);
+		conductorRunnerThread.start();  
 	}
 
 }

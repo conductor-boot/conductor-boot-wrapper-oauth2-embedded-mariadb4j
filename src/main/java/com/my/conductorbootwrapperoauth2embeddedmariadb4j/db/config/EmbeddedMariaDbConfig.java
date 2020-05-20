@@ -46,9 +46,10 @@ public class EmbeddedMariaDbConfig {
 	
 	@Value("${mariadb4j.connect.timeout:31536000}")
 	public String connectTimeout;
-
+	
     @Bean("mariaDB4jSpringService")
     public MariaDB4jSpringService mariaDB4jSpringService() {
+    	
     	MariaDB4jSpringService mariaDB4jSpringService = new MariaDB4jSpringService();
     	
     	mariaDB4jSpringService.getConfiguration().addArg("--max-connections="+maxConnections);
